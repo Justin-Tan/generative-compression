@@ -68,5 +68,5 @@ class directories(object):
     tensorboard = 'tensorboard'
     checkpoints = 'checkpoints'
     checkpoints_best = 'checkpoints/best'
-    samples = 'samples/cityscapes'
+    samples = 'samples'
 

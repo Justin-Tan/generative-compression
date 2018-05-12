@@ -27,7 +27,8 @@ $ python3 compress.py -i /path/to/image -r /path/to/model/checkpoint
 ```
 
 ## Results
-These globally compressed images are from the test split of the Cityscapes `leftImg8bit` dataset.
+These globally compressed images are from the test split of the Cityscapes `leftImg8bit` dataset. The decoder seems to hallunicate greenery in buildings, and vice-versa. 
+
 #### C=8 channels, multiscale discriminator
 | Input | Output (0.072 bpp) |
 |-------|-------|
@@ -37,10 +38,12 @@ These globally compressed images are from the test split of the Cityscapes `left
 ```
 Show quantized C=4,8,16 channels image comparison
 ```
-
+| Generator Loss | Discriminator Loss |
+|-------|-------|
+|![gen_loss](images/results/generator_loss.png) | ![discriminator_loss](images/results/discriminator_loss.png) |
 
 ## Pretrained Model
-You can find pretrained models for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) and multiscale discriminator loss under `<dropbox link to here>`. The model was trained for 64 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset. 
+You can find pretrained models for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) and multiscale discriminator loss under `<dropbox link here>`. The model was trained for 64 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset. 
 * Warning: Tensorflow 1.3 was used to train the models, but it appears to load without problems on Tensorflow 1.8. 
 
 ## Details / extensions
@@ -79,3 +82,4 @@ Training was done using the [ADE 20k dataset](http://groups.csail.mit.edu/vision
 * [Generative Adversarial Networks for Extreme Learned Image Compression](https://data.vision.ee.ethz.ch/aeirikur/extremecompression/#publication)
 * [CycleGAN](https://arxiv.org/pdf/1703.10593.pdf)
 * [High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/)
+
