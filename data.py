@@ -68,7 +68,7 @@ class Data(object):
 
                 return im
 
-        dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames)
+        dataset = tf.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(_parser)
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
@@ -93,7 +93,7 @@ class Data(object):
 
             return image, label
 
-        dataset = tf.contrib.data.Dataset.from_tensor_slices((filenames, labels))
+        dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
         dataset = dataset.map(_preprocess_inference)
         dataset = dataset.batch(batch_size)
         

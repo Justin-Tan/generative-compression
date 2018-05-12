@@ -33,7 +33,7 @@ class Model():
                                          multiscale=config.multiscale,
                                          test=True)
 
-        self.iterator = tf.contrib.data.Iterator.from_string_handle(self.handle,
+        self.iterator = tf.data.Iterator.from_string_handle(self.handle,
                                                                     train_dataset.output_types,
                                                                     train_dataset.output_shapes)
 
