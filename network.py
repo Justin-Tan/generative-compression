@@ -55,7 +55,7 @@ class Network(object):
         centers = tf.cast(tf.range(-2,3), tf.float32)
         # Partition W into the Voronoi tesellation over the centers
         w_stack = tf.stack([w for _ in range(L)], axis=-1)
-        w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32)
+        w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32) + tf.reduce_min(centers)
 
         smx = tf.nn.softmax(-1.0/temperature * tf.abs(w_stack - centers), dim=-1)
         # Contract last dimension
@@ -132,12 +132,10 @@ class Network(object):
         # Upsample to original dimensions - mirror decoder
         f = [480, 240, 120, 60]
 
-        # ups = upsample_block(res, 800, 3, strides=[1,1], padding='same', norm_type='instance')
         ups = upsample_block(res, f[0], 3, strides=[2,2], padding='same')
         ups = upsample_block(ups, f[1], 3, strides=[2,2], padding='same')
         ups = upsample_block(ups, f[2], 3, strides=[2,2], padding='same')
         ups = upsample_block(ups, f[3], 3, strides=[2,2], padding='same')
-        # ups = upsample_block(ups, 3, 3, strides=[1,1], padding='same', norm_type='instance')
         
         ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
         ups = tf.layers.conv2d(ups, 3, kernel_size=7, strides=1, padding='VALID')

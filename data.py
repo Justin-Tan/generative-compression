@@ -25,7 +25,8 @@ class Data(object):
         return image
 
     @staticmethod
-    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False, multiscale=False):
+    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False, multiscale=False,
+            training_dataset='cityscapes'):
 
         # Consume image data
         def _augment(image):
@@ -40,12 +41,12 @@ class Data(object):
         def _parser(image_path):
             def _aspect_preserving_width_resize(image, width=512):
                 height_i = tf.shape(image)[0]
-                width_i = tf.shape(image)[1]
-                ratio = tf.to_float(width_i) / tf.to_float(height_i)
-                new_height = tf.to_int32(tf.to_float(height_i) / ratio)
-                new_height = new_height - tf.floormod(new_height, 16)
+                # width_i = tf.shape(image)[1]
+                # ratio = tf.to_float(width_i) / tf.to_float(height_i)
+                # new_height = tf.to_int32(tf.to_float(height_i) / ratio)
+                new_height = height_i - tf.floormod(height_i, 16)
                     
-                return tf.image.resize_images(image, [new_height,width])
+                return tf.image.resize_image_with_crop_or_pad(image, new_height, width)
 
             if multiscale is True:
                 scales = [1,2,4]
@@ -54,6 +55,14 @@ class Data(object):
                     im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3, ratio=scale)
                     im = tf.image.convert_image_dtype(im, dtype=tf.float32)
                     im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+
+                    if training_dataset == 'ADE20k':
+                        print('Training on', training_dataset)
+                        im = _aspect_preserving_width_resize(im)
+                        # im.set_shape([None,512,3])
+                    else:
+                        print('Training on', training_dataset)
+
                     # im.set_shape([512,1024,3])
                     pyramid.append(im)  # first element of the list should be the original image
 
@@ -63,12 +72,16 @@ class Data(object):
                 im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3)
                 im = tf.image.convert_image_dtype(im, dtype=tf.float32)
                 im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
-                # im = _aspect_preserving_width_resize(im)
-                im.set_shape([512,1024,3])
+                
+                if training_dataset is 'ADE20k':
+                    im = _aspect_preserving_width_resize(im)
+                    # im.set_shape([None,512,3])
+
+                # im.set_shape([512,1024,3])
 
                 return im
 
-        dataset = tf.data.Dataset.from_tensor_slices(filenames)
+        dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(_parser)
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
@@ -93,7 +106,7 @@ class Data(object):
 
             return image, label
 
-        dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
+        dataset = tf.contrib.data.Dataset.from_tensor_slices((filenames, labels))
         dataset = dataset.map(_preprocess_inference)
         dataset = dataset.batch(batch_size)
         

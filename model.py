@@ -10,7 +10,7 @@ from config import directories
 from utils import Utils
 
 class Model():
-    def __init__(self, config, paths, name='gan_compression', evaluate=False):
+    def __init__(self, config, paths, dataset, name='gan_compression', evaluate=False):
         # Build the computational graph
         
         print('Building computational graph ...')
@@ -26,14 +26,16 @@ class Model():
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
                                           augment=False,
-                                          multiscale=config.multiscale)
+                                          multiscale=config.multiscale,
+                                          training_dataset=dataset)
         test_dataset = Data.load_dataset(self.test_path_placeholder,
                                          config.batch_size,
                                          augment=False,
                                          multiscale=config.multiscale,
+                                         training_dataset=dataset,
                                          test=True)
 
-        self.iterator = tf.data.Iterator.from_string_handle(self.handle,
+        self.iterator = tf.contrib.data.Iterator.from_string_handle(self.handle,
                                                                     train_dataset.output_types,
                                                                     train_dataset.output_shapes)
 
@@ -45,9 +47,6 @@ class Model():
         else:
             self.example = self.iterator.get_next()            
 
-        # noise_prior = tf.contrib.distributions.Uniform(-1., 1.)
-        # self.noise_sample = noise_prior.sample([tf.shape(self.example)[0], config.noise_dim])
-
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>
         with tf.variable_scope('generator'):
@@ -56,6 +55,8 @@ class Model():
 
             if config.sample_noise is True:
                 print('Sampling noise...')
+                # noise_prior = tf.contrib.distributions.Uniform(-1., 1.)
+                # self.noise_sample = noise_prior.sample([tf.shape(self.example)[0], config.noise_dim])
                 noise_prior = tf.contrib.distributions.MultivariateNormalDiag(loc=tf.zeros([config.noise_dim]), scale_diag=tf.ones([config.noise_dim]))
                 v = noise_prior.sample(tf.shape(self.example)[0])
                 Gv = Network.dcgan_generator(v, config, self.training_phase, C=config.channel_bottleneck, upsample_dim=config.upsample_dim)
@@ -64,7 +65,6 @@ class Model():
                 self.z = self.w_hat
 
             self.reconstruction = Network.decoder(self.z, config, self.training_phase, C=config.channel_bottleneck)
-            # self.reconstruction = Network.decoder(self.feature_map, config, self.training_phase, config.channel_bottleneck)
 
         print('Real image shape:', self.example.get_shape().as_list())
         print('Reconstruction shape:', self.reconstruction.get_shape().as_list())
@@ -98,8 +98,8 @@ class Model():
             self.G_loss = tf.reduce_mean(tf.square(D_Gz - 1.))
 
             if config.multiscale:
-                self.D_loss += tf.reduce_mean(tf.square(D_x2 - 1.) + tf.square(D_x4 - 1.))
-                self.D_loss += tf.reduce_mean(tf.square(D_Gz2) + tf.square(D_Gz4))
+                self.D_loss += tf.reduce_mean(tf.square(D_x2 - 1.)) + tf.reduce_mean(tf.square(D_x4 - 1.))
+                self.D_loss += tf.reduce_mean(tf.square(D_Gz2)) + tf.reduce_mean(tf.square(D_Gz4))
 
         self.G_loss += config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
         

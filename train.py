@@ -23,9 +23,10 @@ def train(config, args):
     # Load data
     paths = Data.load_dataframe(directories.train)
     test_paths = Data.load_dataframe(directories.test)
+    print('Training on dataset', args.dataset)
 
     # Build graph
-    gan = Model(config, paths, name=args.name)
+    gan = Model(config, paths, name=args.name, dataset=args.dataset)
     saver = tf.train.Saver()
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
@@ -95,6 +96,7 @@ def main(**kwargs):
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-opt", "--optimizer", default="adam", help="Selected optimizer", type=str)
     parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
+    parser.add_argument("-ds", "--dataset", default="cityscapes", help="choice of training dataset. Currently only supports cityscapes/ADE20k", choices=set(("cityscapes", "ADE20k")), type=str)
     args = parser.parse_args()
 
     # Launch training
