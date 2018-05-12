@@ -1,0 +1,6 @@
+*
+!.gitignore
+!cityscapes_paths_train.h5
+!cityscapes_paths_test.h5
+!cityscapes_paths_val.h5
+
