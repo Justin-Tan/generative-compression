@@ -35,7 +35,7 @@ class Model():
                                          training_dataset=dataset,
                                          test=True)
 
-        self.iterator = tf.contrib.data.Iterator.from_string_handle(self.handle,
+        self.iterator = tf.data.Iterator.from_string_handle(self.handle,
                                                                     train_dataset.output_types,
                                                                     train_dataset.output_shapes)
 
@@ -72,9 +72,9 @@ class Model():
         # Pass generated, real images to discriminator
         # =======================================================================================================>>>
         if config.multiscale:
-            D_x, D_x2, D_x4 = Network.multiscale_discriminator(self.example, self.example_downscaled2, self.example_downscaled4,
+            D_x, D_x2, D_x4, *Dk_x = Network.multiscale_discriminator(self.example, self.example_downscaled2, self.example_downscaled4,
                 self.reconstruction, config, self.training_phase, use_sigmoid=config.use_vanilla_GAN, mode='real')
-            D_Gz, D_Gz2, D_Gz4 = Network.multiscale_discriminator(self.example, self.example_downscaled2, self.example_downscaled4,
+            D_Gz, D_Gz2, D_Gz4, *Dk_Gz = Network.multiscale_discriminator(self.example, self.example_downscaled2, self.example_downscaled4,
                 self.reconstruction, config, self.training_phase, use_sigmoid=config.use_vanilla_GAN, mode='reconstructed', reuse=True)
         else:
             D_x = Network.discriminator(self.example, config, self.training_phase, use_sigmoid=config.use_vanilla_GAN)
@@ -94,14 +94,21 @@ class Model():
                 labels=tf.ones_like(D_Gz)))
         else:
             # Minimize $\chi^2$ divergence
-            self.D_loss = tf.reduce_mean(tf.square(D_x - 1.) + tf.square(D_Gz))
+            self.D_loss = tf.reduce_mean(tf.square(D_x - 1.)) + tf.reduce_mean(tf.square(D_Gz))
             self.G_loss = tf.reduce_mean(tf.square(D_Gz - 1.))
 
             if config.multiscale:
                 self.D_loss += tf.reduce_mean(tf.square(D_x2 - 1.)) + tf.reduce_mean(tf.square(D_x4 - 1.))
                 self.D_loss += tf.reduce_mean(tf.square(D_Gz2)) + tf.reduce_mean(tf.square(D_Gz4))
 
-        self.G_loss += config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
+        distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
+        self.G_loss += distortion_penalty
+
+        if config.use_feature_matching_loss:  # feature extractor for generator
+            D_x_layers, D_Gz_layers = [j for i in Dk_x for j in i], [j for i in Dk_Gz for j in i]
+            feature_matching_loss = tf.reduce_sum([tf.reduce_mean(tf.abs(Dkx-Dkz)) for Dkx, Dkz in zip(D_x_layers, D_Gz_layers)])
+            self.G_loss += config.feature_matching_weight * feature_matching_loss
+
         
         # Optimization
         # =======================================================================================================>>>
@@ -135,10 +142,12 @@ class Model():
         # tf.summary.scalar('learning_rate', learning_rate)
         tf.summary.scalar('generator_loss', self.G_loss)
         tf.summary.scalar('discriminator_loss', self.D_loss)
+        tf.summary.scalar('distortion_penalty', distortion_penalty)
+        tf.summary.scalar('feature_matching_loss', feature_matching_loss)
         tf.summary.scalar('G_global_step', self.G_global_step)
         tf.summary.scalar('D_global_step', self.D_global_step)
-        tf.summary.image('real_images', self.example, max_outputs=1)
-        tf.summary.image('compressed_images', self.reconstruction, max_outputs=1)
+        tf.summary.image('real_images', self.example, max_outputs=4)
+        tf.summary.image('compressed_images', self.reconstruction, max_outputs=4)
         self.merge_op = tf.summary.merge_all()
 
         self.train_writer = tf.summary.FileWriter(

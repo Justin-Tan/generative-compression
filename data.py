@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from config import directories
+from config import directories, config_train
 
 
 class Data(object):
@@ -55,13 +55,15 @@ class Data(object):
                     im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3, ratio=scale)
                     im = tf.image.convert_image_dtype(im, dtype=tf.float32)
                     im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+                    print('Training on', training_dataset)
 
                     if training_dataset == 'ADE20k':
-                        print('Training on', training_dataset)
+                        if config_train.use_feature_matching_loss:
+                            # TODO: Integrate FM loss for ADE20k dataset
+                            raise NotImplementedError('Feature matching loss currently only works on cityscapes!')
+
                         im = _aspect_preserving_width_resize(im)
                         # im.set_shape([None,512,3])
-                    else:
-                        print('Training on', training_dataset)
 
                     # im.set_shape([512,1024,3])
                     pyramid.append(im)  # first element of the list should be the original image
@@ -81,7 +83,7 @@ class Data(object):
 
                 return im
 
-        dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames)
+        dataset = tf.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(_parser)
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
@@ -106,7 +108,7 @@ class Data(object):
 
             return image, label
 
-        dataset = tf.contrib.data.Dataset.from_tensor_slices((filenames, labels))
+        dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
         dataset = dataset.map(_preprocess_inference)
         dataset = dataset.batch(batch_size)
         
