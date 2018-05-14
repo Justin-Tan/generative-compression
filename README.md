@@ -42,6 +42,7 @@ Show quantized C=4,8,16 channels image comparison
 | Input | Output (0.072 bpp) |
 |-------|-------|
 |![cityscapes_noise_real_0](images/results/noise_0_real.png) | ![cityscapes_noise_hall_0](images/results/noise_0_hall.png) |
+|![cityscapes_noise_real_1](images/results/noise_1_real.png) | ![cityscapes_noise_hall_1](images/results/noise_1_hall.png) |
 
 | Generator Loss | Discriminator Loss |
 |-------|-------|
