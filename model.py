@@ -26,12 +26,10 @@ class Model():
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
                                           augment=False,
-                                          multiscale=config.multiscale,
                                           training_dataset=dataset)
         test_dataset = Data.load_dataset(self.test_path_placeholder,
                                          config.batch_size,
                                          augment=False,
-                                         multiscale=config.multiscale,
                                          training_dataset=dataset,
                                          test=True)
 
@@ -42,10 +40,12 @@ class Model():
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
 
+
+        self.example = self.iterator.get_next()
+
         if config.multiscale:
-            self.example, self.example_downscaled2, self.example_downscaled4 = self.iterator.get_next()
-        else:
-            self.example = self.iterator.get_next()            
+            self.example_downscaled2 = tf.layers.average_pooling2d(self.example, pool_size=3, strides=1, padding='same')
+            self.example_downscaled4 = tf.layers.average_pooling2d(self.example_downscaled2, pool_size=3, strides=1, padding='same')     
 
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>

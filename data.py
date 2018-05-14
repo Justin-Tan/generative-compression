@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from config import directories, config_train
+from config import directories
 
 
 class Data(object):
@@ -25,7 +25,7 @@ class Data(object):
         return image
 
     @staticmethod
-    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False, multiscale=False,
+    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False,
             training_dataset='cityscapes'):
 
         # Consume image data
@@ -48,40 +48,18 @@ class Data(object):
                     
                 return tf.image.resize_image_with_crop_or_pad(image, new_height, width)
 
-            if multiscale is True:
-                scales = [1,2,4]
-                pyramid = list()
-                for scale in scales:
-                    im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3, ratio=scale)
-                    im = tf.image.convert_image_dtype(im, dtype=tf.float32)
-                    im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
-                    print('Training on', training_dataset)
+            im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3)
+            im = tf.image.convert_image_dtype(im, dtype=tf.float32)
+            im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+            
+            print('Training on', training_dataset)
+            if training_dataset is 'ADE20k':
+                im = _aspect_preserving_width_resize(im)
+                # im.set_shape([None,512,3])
 
-                    if training_dataset == 'ADE20k':
-                        if config_train.use_feature_matching_loss:
-                            # TODO: Integrate FM loss for ADE20k dataset
-                            raise NotImplementedError('Feature matching loss currently only works on cityscapes!')
+            # im.set_shape([512,1024,3])
 
-                        im = _aspect_preserving_width_resize(im)
-                        # im.set_shape([None,512,3])
-
-                    # im.set_shape([512,1024,3])
-                    pyramid.append(im)  # first element of the list should be the original image
-
-                return pyramid
-
-            else:
-                im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3)
-                im = tf.image.convert_image_dtype(im, dtype=tf.float32)
-                im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
-                
-                if training_dataset is 'ADE20k':
-                    im = _aspect_preserving_width_resize(im)
-                    # im.set_shape([None,512,3])
-
-                # im.set_shape([512,1024,3])
-
-                return im
+            return im
 
         dataset = tf.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(_parser)
