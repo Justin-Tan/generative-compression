@@ -13,7 +13,7 @@ class config_train(object):
     noise_dim = 128
     optimizer = 'adam'
     kernel_size = 3
-    diagnostic_steps = 128
+    diagnostic_steps = 256
 
     # WGAN
     gradient_penalty = True
@@ -23,12 +23,14 @@ class config_train(object):
     n_critic_iterations = 20
 
     # Compression
-    lambda_X = 10
+    lambda_X = 12
     channel_bottleneck = 8
     sample_noise = False
     use_vanilla_GAN = False
+    use_feature_matching_loss = True
     upsample_dim = 256
-    multiscale = False
+    multiscale = True
+    feature_matching_weight = 10
 
 class config_test(object):
     mode = 'gan-test'
@@ -43,7 +45,7 @@ class config_test(object):
     noise_dim = 128
     optimizer = 'adam'
     kernel_size = 3
-    diagnostic_steps = 128
+    diagnostic_steps = 256
 
     # WGAN
     gradient_penalty = True
@@ -53,18 +55,20 @@ class config_test(object):
     n_critic_iterations = 5
 
     # Compression
-    lambda_X = 10
+    lambda_X = 12
     channel_bottleneck = 8
-    sample_noise = False
+    sample_noise = True
     use_vanilla_GAN = False
+    use_feature_matching_loss = True
     upsample_dim = 256
-    multiscale = False
+    multiscale = True
+    feature_matching_weight = 10
 
 class directories(object):
     # train = 'data/ADE20K_paths_train.h5'
     # test = 'data/ADE20K_paths_test.h5'
     train = 'data/cityscapes_paths_train.h5'
-    test = 'data/cityscapes_paths_test.h5'
+    test = 'data/cityscapes_paths_val.h5'
     # val = 'data/cityscapes_paths_val.h5'
     tensorboard = 'tensorboard'
     checkpoints = 'checkpoints'

@@ -172,13 +172,30 @@ class Network(object):
 
 
     @staticmethod
-    def multiscale_discriminator(x, x2, x4, reconstruction, config, training, actv=tf.nn.leaky_relu, use_sigmoid=False, 
+    def multiscale_discriminator(x, config, training, actv=tf.nn.leaky_relu, use_sigmoid=False, 
         ksize=4, mode='real', reuse=False):
         # x is either generator output G(z) or drawn from the real data distribution
-        # Patch-GAN discriminator based on arXiv 1711.11585
+        # Multiscale + Patch-GAN discriminator architecture based on arXiv 1711.11585
+        print('<------------ Using multiscale discriminator architecture ------------>')
+
+        if mode == 'real':
+            print('Building discriminator D(x)')
+        elif mode == 'reconstructed':
+            print('Building discriminator D(G(z))')
+        else:
+            raise NotImplementedError('Invalid discriminator mode specified.')
+
+        # Downsample input
+        x2 = tf.layers.average_pooling2d(x, pool_size=3, strides=2, padding='same')
+        x4 = tf.layers.average_pooling2d(x2, pool_size=3, strides=2, padding='same')
+
         print('Shape of x:', x.get_shape().as_list())
+        print('Shape of x downsampled by factor 2:', x2.get_shape().as_list())
+        print('Shape of x downsampled by factor 4:', x4.get_shape().as_list())
 
         def discriminator(x, scope, actv=actv, use_sigmoid=use_sigmoid, ksize=ksize, reuse=reuse):
+
+            # Returns patch-GAN output + intermediate layers
 
             with tf.variable_scope('discriminator_{}'.format(scope), reuse=reuse):
                 c1 = tf.layers.conv2d(x, 64, kernel_size=ksize, strides=2, padding='same', activation=actv)
@@ -190,22 +207,14 @@ class Network(object):
                 if use_sigmoid is True:  # Otherwise use LS-GAN
                     out = tf.nn.sigmoid(out)
 
-            return out
+            return out, c1, c2, c3, c4
 
-        if mode is 'reconstructed':
-            with tf.variable_scope('discriminator', reuse=reuse):
-                disc = discriminator(reconstruction, 'original')
-                disc_downsampled_2 = discriminator(reconstruction, 'downsampled_2')
-                disc_downsampled_4 = discriminator(reconstruction, 'downsampled_4')
-        elif mode is 'real':
-            with tf.variable_scope('discriminator', reuse=reuse):
-                disc = discriminator(x, 'original')
-                disc_downsampled_2 = discriminator(x2, 'downsampled_2')
-                disc_downsampled_4 = discriminator(x4, 'downsampled_4')
-        else:
-            raise Exception('Invalid discriminator mode specified.')
+        with tf.variable_scope('discriminator', reuse=reuse):
+            disc, *Dk = discriminator(x, 'original')
+            disc_downsampled_2, *Dk_2 = discriminator(x2, 'downsampled_2')
+            disc_downsampled_4, *Dk_4 = discriminator(x4, 'downsampled_4')
 
-        return disc, disc_downsampled_2, disc_downsampled_4
+        return disc, disc_downsampled_2, disc_downsampled_4, Dk, Dk_2, Dk_4
 
     @staticmethod
     def dcgan_generator(z, config, training, C, reuse=False, actv=tf.nn.relu, kernel_size=5, upsample_dim=256):

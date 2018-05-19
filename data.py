@@ -25,7 +25,7 @@ class Data(object):
         return image
 
     @staticmethod
-    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False, multiscale=False,
+    def load_dataset(filenames, batch_size, test=False, augment=False, downsample=False,
             training_dataset='cityscapes'):
 
         # Consume image data
@@ -48,40 +48,24 @@ class Data(object):
                     
                 return tf.image.resize_image_with_crop_or_pad(image, new_height, width)
 
-            if multiscale is True:
-                scales = [1,2,4]
-                pyramid = list()
-                for scale in scales:
-                    im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3, ratio=scale)
-                    im = tf.image.convert_image_dtype(im, dtype=tf.float32)
-                    im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+            im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3)
+            im = tf.image.convert_image_dtype(im, dtype=tf.float32)
+            im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+            
+            print('Training on', training_dataset)
+            if training_dataset is 'ADE20k':
+                im = _aspect_preserving_width_resize(im)
+                # im.set_shape([None,512,3])
+            
+            # Explicitly set the shape if you want a sanity check
+            # or if you are using your own custom dataset, otherwise
+            # the model is shape-agnostic as it is fully convolutional
 
-                    if training_dataset == 'ADE20k':
-                        print('Training on', training_dataset)
-                        im = _aspect_preserving_width_resize(im)
-                        # im.set_shape([None,512,3])
-                    else:
-                        print('Training on', training_dataset)
+            # im.set_shape([512,1024,3])  # downscaled cityscapes
 
-                    # im.set_shape([512,1024,3])
-                    pyramid.append(im)  # first element of the list should be the original image
+            return im
 
-                return pyramid
-
-            else:
-                im = tf.image.decode_jpeg(tf.read_file(image_path), channels=3)
-                im = tf.image.convert_image_dtype(im, dtype=tf.float32)
-                im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
-                
-                if training_dataset is 'ADE20k':
-                    im = _aspect_preserving_width_resize(im)
-                    # im.set_shape([None,512,3])
-
-                # im.set_shape([512,1024,3])
-
-                return im
-
-        dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames)
+        dataset = tf.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(_parser)
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
@@ -106,7 +90,7 @@ class Data(object):
 
             return image, label
 
-        dataset = tf.contrib.data.Dataset.from_tensor_slices((filenames, labels))
+        dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
         dataset = dataset.map(_preprocess_inference)
         dataset = dataset.batch(batch_size)
         
