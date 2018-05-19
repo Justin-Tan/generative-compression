@@ -38,6 +38,12 @@ These globally compressed images are from the test split of the Cityscapes `left
 ```
 Show quantized C=4,8,16 channels image comparison
 ```
+#### Hallucinations from sampled noise passed through a  DCGAN generator
+| Input | Output (0.072 bpp) |
+|-------|-------|
+|![cityscapes_noise_real_0](images/results/noise_0_real.png) | ![cityscapes_noise_hall_0](images/results/noise_0_hall.png) |
+|![cityscapes_noise_real_1](images/results/noise_1_real.png) | ![cityscapes_noise_hall_1](images/results/noise_1_hall.png) |
+
 | Generator Loss | Discriminator Loss |
 |-------|-------|
 |![gen_loss](images/results/generator_loss.png) | ![discriminator_loss](images/results/discriminator_loss.png) |

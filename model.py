@@ -140,7 +140,8 @@ class Model():
         tf.summary.scalar('generator_loss', self.G_loss)
         tf.summary.scalar('discriminator_loss', self.D_loss)
         tf.summary.scalar('distortion_penalty', distortion_penalty)
-        tf.summary.scalar('feature_matching_loss', feature_matching_loss)
+        if config.use_feature_matching_loss:
+            tf.summary.scalar('feature_matching_loss', feature_matching_loss)
         tf.summary.scalar('G_global_step', self.G_global_step)
         tf.summary.scalar('D_global_step', self.D_global_step)
         tf.summary.image('real_images', self.example, max_outputs=4)

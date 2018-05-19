@@ -14,6 +14,7 @@ class Network(object):
          + Output:  Projection onto C channels, C = {2,4,8,16}
         """
         init = tf.contrib.layers.xavier_initializer()
+        print('<------------ Building global generator architecture ------------>')
 
         def conv_block(x, filters, kernel_size=[3,3], strides=2, padding='same', actv=actv, init=init):
             bn_kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
@@ -176,7 +177,7 @@ class Network(object):
         ksize=4, mode='real', reuse=False):
         # x is either generator output G(z) or drawn from the real data distribution
         # Multiscale + Patch-GAN discriminator architecture based on arXiv 1711.11585
-        print('<------------ Using multiscale discriminator architecture ------------>')
+        print('<------------ Building multiscale discriminator architecture ------------>')
 
         if mode == 'real':
             print('Building discriminator D(x)')
