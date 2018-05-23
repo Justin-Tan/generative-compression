@@ -89,7 +89,7 @@ class Utils(object):
                             global_step=epoch)
                 print('Graph saved to file: {}'.format(save_path))
 
-        if epoch % 10 == 0 and epoch>10:
+        if epoch % 5 == 0 and epoch > 5:
             save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
             print('Graph saved to file: {}'.format(save_path))
 
@@ -106,18 +106,31 @@ class Utils(object):
         # Generate images from noise, using the generator network.
         r, g = sess.run([real, gen], feed_dict={model.training_phase:True, model.handle: handle})
 
+        images = list()
+
         for im, imtype in zip([r,g], ['real', 'gen']):
             im = ((im+1.0))/2  # [-1,1] -> [0,1]
             im = np.squeeze(im)
+            im = im[:,:,:3]
+            images.append(im)
 
-            f = plt.figure()
-            plt.imshow(im)
-            plt.axis('off')
-            f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}.pdf".format(directories.samples, name, epoch,
-                                global_step, imtype), format='pdf', dpi=800, bbox_inches='tight', pad_inches=0)
-            # plt.clf()
-            plt.gcf().clear()
-            plt.close(f)
+            # Uncomment to plot real and generated samples separately
+            # f = plt.figure()
+            # plt.imshow(im)
+            # plt.axis('off')
+            # f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}.pdf".format(directories.samples, name, epoch,
+            #                     global_step, imtype), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
+            # plt.gcf().clear()
+            # plt.close(f)
+
+        comparison = np.hstack(images)
+        f = plt.figure()
+        plt.imshow(comparison)
+        plt.axis('off')
+        f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}_comparison.pdf".format(directories.samples, name, epoch,
+            global_step, imtype), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
+        plt.gcf().clear()
+        plt.close(f)
 
 
     @staticmethod
