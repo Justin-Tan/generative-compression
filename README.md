@@ -29,11 +29,14 @@ $ python3 compress.py -i /path/to/image -r /path/to/model/checkpoint
 ## Results
 These globally compressed images are from the test split of the Cityscapes `leftImg8bit` dataset. The decoder seems to hallunicate greenery in buildings, and vice-versa. 
 
-#### C=8 channels, multiscale discriminator
-| Input | Output (0.072 bpp) |
+#### C=8 channels, multiscale discriminator + feature-matching losses (compression to 0.072 bbp)
+![cityscapes_0](images/results/cGAN_epoch44.png)
+![cityscapes_1](images/results/cGAN_epoch38.png)
+
+<!-- | Input | Output (0.072 bpp) |
 |-------|-------|
 |![cityscapes_real_0](images/results/ms_quant_0_real.png) | ![cityscapes_gen_0](images/results/ms_quant_0_gen.png) |
-|![cityscapes_real_1](images/results/ms_quant_1_real.png) | ![cityscapes_gen_1](images/results/ms_quant_1_gen.png) |
+|![cityscapes_real_1](images/results/ms_quant_1_real.png) | ![cityscapes_gen_1](images/results/ms_quant_1_gen.png) | -->
 
 ```
 Show quantized C=4,8,16 channels image comparison
@@ -74,6 +77,9 @@ To change hyperparameters/toggle features use the knobs in `config.py`. (Bad for
 ### Data / Setup
 Training was done using the [ADE 20k dataset](http://groups.csail.mit.edu/vision/datasets/ADE20K/) and the [Cityscapes leftImg8bit dataset](https://www.cityscapes-dataset.com/). In the former case images are rescaled to width `512` px, and in the latter images are [resampled to `[512 x 1024]` prior to training](https://www.imagemagick.org/script/command-line-options.php#resample). An example script for resampling using `Imagemagick` is provided under `data/`. In each case, you will need to create a Pandas dataframe containing a single column: `path`, which holds the absolute/relative path to the images. This should be saved as a `HDF5` file, and you should provide the path to this under the `directories` class in `config.py`. Examples for the Cityscapes dataset are provided in the `data` directory. 
 
+### Conditional GAN usage
+The conditional GAN implementation for global compression is in the `cGAN` directory. The cGAN implementation appears to yield images with the highest image quality, but I am unsure if the implementation is correct. In this implementation generation is conditioned on the information in semantic label maps. You will need to download the `gtFine` dataset of annotation maps and append a separate column `semantic_map_paths` to the Pandas dataframe pointing to the corresponding images from the `gtFine` dataset.
+
 ### Dependencies
 * Python 3.6
 * [Pandas](https://pandas.pydata.org/)
@@ -81,7 +87,9 @@ Training was done using the [ADE 20k dataset](http://groups.csail.mit.edu/vision
 
 ### Todo:
 * Incorporate GAN noise sampling into the reconstructed image. The authors state that this step is optional and that the sampled noise is combined with the quantized representation but don't provide further details. Currently the model samples from a normal distribution and upsamples this using a DCGAN-like generator (see `network.py`) to be concatenated with the quantized image representation `w_hat`, but this appears to substantially increase the 'hallunication factor' in the reconstructed images.
-* Integrate VGG / feature-matching losses.
+* Integrate VGG loss.
+* Experiment with WGAN-GP. 
+* Integrate spectral normalization for discriminator.
 * Extend to selective compression using semantic maps (contributions welcome).
 
 ### Resources
