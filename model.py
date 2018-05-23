@@ -114,8 +114,7 @@ class Model():
 
         theta_G = Utils.scope_variables('generator')
         theta_D = Utils.scope_variables('discriminator')
-        print('Generator parameters:', theta_G)
-        print('Discriminator parameters:', theta_D)
+
         G_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='generator')
         D_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='discriminator')
 

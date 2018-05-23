@@ -59,7 +59,6 @@ def train(config, args):
             while True:
                 try:
                     # Update generator
-                    # for _ in range(8):
                     feed_dict = {gan.training_phase: True, gan.handle: train_handle}
                     sess.run(gan.G_opt_op, feed_dict=feed_dict)
 
@@ -70,8 +69,6 @@ def train(config, args):
                         G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
                             start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
-                        # for _ in range(4):
-                        #    sess.run(gan.G_opt_op, feed_dict=feed_dict)
 
 
                 except tf.errors.OutOfRangeError:
