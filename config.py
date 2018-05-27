@@ -23,14 +23,15 @@ class config_train(object):
     n_critic_iterations = 20
 
     # Compression
-    lambda_X = 16
+    lambda_X = 12
     channel_bottleneck = 8
-    sample_noise = False
+    sample_noise = True
     use_vanilla_GAN = False
     use_feature_matching_loss = True
     upsample_dim = 256
     multiscale = True
     feature_matching_weight = 10
+    use_conditional_GAN = False
 
 class config_test(object):
     mode = 'gan-test'
@@ -63,15 +64,14 @@ class config_test(object):
     upsample_dim = 256
     multiscale = True
     feature_matching_weight = 10
+    use_conditional_GAN = False
 
 class directories(object):
-    # train = 'data/ADE20K_paths_train.h5'
-    # test = 'data/ADE20K_paths_test.h5'
     train = 'data/cityscapes_paths_train.h5'
-    test = 'data/cityscapes_paths_val.h5'
-    # val = 'data/cityscapes_paths_val.h5'
+    test = 'data/cityscapes_paths_test.h5'
+    val = 'data/cityscapes_paths_val.h5'
     tensorboard = 'tensorboard'
     checkpoints = 'checkpoints'
     checkpoints_best = 'checkpoints/best'
-    samples = 'samples'
+    samples = 'samples/cityscapes'
 

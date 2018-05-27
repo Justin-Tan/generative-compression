@@ -7,14 +7,14 @@ from utils import Utils
 class Network(object):
 
     @staticmethod
-    def encoder(x, config, training, C, reuse=False, actv=tf.nn.relu):
+    def encoder(x, config, training, C, reuse=False, actv=tf.nn.relu, scope='image'):
         """
         Process image x ([512,1024]) into a feature map of size W/16 x H/16 x C
          + C:       Bottleneck depth, controls bpp
          + Output:  Projection onto C channels, C = {2,4,8,16}
         """
         init = tf.contrib.layers.xavier_initializer()
-        print('<------------ Building global generator architecture ------------>')
+        print('<------------ Building global {} generator architecture ------------>'.format(scope))
 
         def conv_block(x, filters, kernel_size=[3,3], strides=2, padding='same', actv=actv, init=init):
             bn_kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
@@ -25,7 +25,7 @@ class Network(object):
             x = actv(x)
             return x
 
-        with tf.variable_scope('encoder', reuse=reuse):
+        with tf.variable_scope('encoder_{}'.format(scope), reuse=reuse):
 
             # Run convolutions
             f = [60, 120, 240, 480, 960]
@@ -46,26 +46,27 @@ class Network(object):
 
 
     @staticmethod
-    def quantizer(w, config, reuse=False, temperature=1, L=5):
+    def quantizer(w, config, reuse=False, temperature=1, L=5, scope='image'):
         """
         Quantize feature map over L centers to obtain discrete $\hat{w}$
          + Centers: {-2,-1,0,1,2}
          + TODO:    Toggle learnable centers?
         """
+        with tf.variable_scope('quantizer_{}'.format(scope, reuse=reuse)):
 
-        centers = tf.cast(tf.range(-2,3), tf.float32)
-        # Partition W into the Voronoi tesellation over the centers
-        w_stack = tf.stack([w for _ in range(L)], axis=-1)
-        w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32) + tf.reduce_min(centers)
+            centers = tf.cast(tf.range(-2,3), tf.float32)
+            # Partition W into the Voronoi tesellation over the centers
+            w_stack = tf.stack([w for _ in range(L)], axis=-1)
+            w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32) + tf.reduce_min(centers)
 
-        smx = tf.nn.softmax(-1.0/temperature * tf.abs(w_stack - centers), dim=-1)
-        # Contract last dimension
-        w_soft = tf.einsum('ijklm,m->ijkl', smx, centers)  # w_soft = tf.tensordot(smx, centers, axes=((-1),(0)))
+            smx = tf.nn.softmax(-1.0/temperature * tf.abs(w_stack - centers), dim=-1)
+            # Contract last dimension
+            w_soft = tf.einsum('ijklm,m->ijkl', smx, centers)  # w_soft = tf.tensordot(smx, centers, axes=((-1),(0)))
 
-        # Treat quantization as differentiable for optimization
-        w_bar = tf.round(tf.stop_gradient(w_hard - w_soft) + w_soft)
+            # Treat quantization as differentiable for optimization
+            w_bar = tf.round(tf.stop_gradient(w_hard - w_soft) + w_soft)
 
-        return w_bar
+            return w_bar
 
 
     @staticmethod
@@ -116,34 +117,35 @@ class Network(object):
         # Project channel dimension of w_bar to higher dimension
         # W_pc = tf.get_variable('W_pc_{}'.format(C), shape=[C, channel_upsample], initializer=init)
         # upsampled = tf.einsum('ijkl,lm->ijkm', w_bar, W_pc)
-        w_bar = tf.pad(w_bar, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
-        upsampled = Utils.conv_block(w_bar, filters=960, kernel_size=3, strides=1, padding='VALID', actv=actv)
-        
-        # Process upsampled feature map with residual blocks
-        res = residual_block(upsampled, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
-        res = residual_block(res, 960, actv=actv)
+        with tf.variable_scope('decoder', reuse=reuse):
+            w_bar = tf.pad(w_bar, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
+            upsampled = Utils.conv_block(w_bar, filters=960, kernel_size=3, strides=1, padding='VALID', actv=actv)
+            
+            # Process upsampled feature map with residual blocks
+            res = residual_block(upsampled, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
+            res = residual_block(res, 960, actv=actv)
 
-        # Upsample to original dimensions - mirror decoder
-        f = [480, 240, 120, 60]
+            # Upsample to original dimensions - mirror decoder
+            f = [480, 240, 120, 60]
 
-        ups = upsample_block(res, f[0], 3, strides=[2,2], padding='same')
-        ups = upsample_block(ups, f[1], 3, strides=[2,2], padding='same')
-        ups = upsample_block(ups, f[2], 3, strides=[2,2], padding='same')
-        ups = upsample_block(ups, f[3], 3, strides=[2,2], padding='same')
-        
-        ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
-        ups = tf.layers.conv2d(ups, 3, kernel_size=7, strides=1, padding='VALID')
+            ups = upsample_block(res, f[0], 3, strides=[2,2], padding='same')
+            ups = upsample_block(ups, f[1], 3, strides=[2,2], padding='same')
+            ups = upsample_block(ups, f[2], 3, strides=[2,2], padding='same')
+            ups = upsample_block(ups, f[3], 3, strides=[2,2], padding='same')
+            
+            ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
+            ups = tf.layers.conv2d(ups, 3, kernel_size=7, strides=1, padding='VALID')
 
-        out = tf.nn.tanh(ups)
+            out = tf.nn.tanh(ups)
 
-        return out
+            return out
 
 
     @staticmethod

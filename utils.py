@@ -98,7 +98,7 @@ class Utils(object):
         return G_loss_best, D_loss_best
 
     @staticmethod
-    def single_plot(epoch, global_step, sess, model, handle, name, config):
+    def single_plot(epoch, global_step, sess, model, handle, name, config, single_compress=False):
 
         real = model.example
         gen = model.reconstruction
@@ -127,8 +127,11 @@ class Utils(object):
         f = plt.figure()
         plt.imshow(comparison)
         plt.axis('off')
-        f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}_comparison.pdf".format(directories.samples, name, epoch,
-            global_step, imtype), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
+        if single_compress:
+            f.savefig(name, format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
+        else:
+            f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}_comparison.pdf".format(directories.samples, name, epoch,
+                global_step, imtype), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
         plt.gcf().clear()
         plt.close(f)
 

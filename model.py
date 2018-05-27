@@ -11,8 +11,9 @@ from utils import Utils
 
 class Model():
     def __init__(self, config, paths, dataset, name='gan_compression', evaluate=False):
+
         # Build the computational graph
-        
+
         print('Building computational graph ...')
         self.G_global_step = tf.Variable(0, trainable=False)
         self.D_global_step = tf.Variable(0, trainable=False)
@@ -21,16 +22,24 @@ class Model():
 
         # >>> Data handling
         self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-        self.test_path_placeholder = tf.placeholder(paths.dtype)
+        self.test_path_placeholder = tf.placeholder(paths.dtype)            
+
+        self.semantic_map_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
+        self.test_semantic_map_path_placeholder = tf.placeholder(paths.dtype)  
 
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
                                           augment=False,
-                                          training_dataset=dataset)
+                                          training_dataset=dataset,
+                                          use_conditional_GAN=config.use_conditional_GAN,
+                                          semantic_map_paths=self.semantic_map_path_placeholder)
+
         test_dataset = Data.load_dataset(self.test_path_placeholder,
                                          config.batch_size,
                                          augment=False,
                                          training_dataset=dataset,
+                                         use_conditional_GAN=config.use_conditional_GAN,
+                                         semantic_map_paths=self.test_semantic_map_path_placeholder,
                                          test=True)
 
         self.iterator = tf.data.Iterator.from_string_handle(self.handle,
@@ -40,15 +49,23 @@ class Model():
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
 
-
-        self.example = self.iterator.get_next()
-
+        if config.use_conditional_GAN:
+            self.example, self.semantic_map = self.iterator.get_next()
+        else:
+            self.example = self.iterator.get_next()
 
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>
         with tf.variable_scope('generator'):
             self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
             self.w_hat = Network.quantizer(self.feature_map, config)
+
+            if config.use_conditional_GAN:
+                self.semantic_feature_map = Network.encoder(self.semantic_map, config, self.training_phase, 
+                    config.channel_bottleneck, scope='semantic_map')
+                self.w_hat_semantic = Network.quantizer(self.semantic_feature_map, config, scope='semantic_map')
+
+                self.w_hat = tf.concat([self.w_hat, self.w_hat_semantic], axis=-1)
 
             if config.sample_noise is True:
                 print('Sampling noise...')
@@ -66,8 +83,17 @@ class Model():
         print('Real image shape:', self.example.get_shape().as_list())
         print('Reconstruction shape:', self.reconstruction.get_shape().as_list())
 
+        if evaluate:
+            return
+
         # Pass generated, real images to discriminator
         # =======================================================================================================>>>
+
+        if config.use_conditional_GAN:
+            # Model conditional distribution
+            self.example = tf.concat([self.example, self.semantic_map], axis=-1)
+            self.reconstruction = tf.concat([self.reconstruction, self.semantic_map], axis=-1)
+
         if config.multiscale:
             D_x, D_x2, D_x4, *Dk_x = Network.multiscale_discriminator(self.example, config, self.training_phase, 
                 use_sigmoid=config.use_vanilla_GAN, mode='real')
@@ -114,7 +140,8 @@ class Model():
 
         theta_G = Utils.scope_variables('generator')
         theta_D = Utils.scope_variables('discriminator')
-
+        print('Generator parameters:', theta_G)
+        print('Discriminator parameters:', theta_D)
         G_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='generator')
         D_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='discriminator')
 
@@ -143,8 +170,10 @@ class Model():
             tf.summary.scalar('feature_matching_loss', feature_matching_loss)
         tf.summary.scalar('G_global_step', self.G_global_step)
         tf.summary.scalar('D_global_step', self.D_global_step)
-        tf.summary.image('real_images', self.example, max_outputs=4)
-        tf.summary.image('compressed_images', self.reconstruction, max_outputs=4)
+        tf.summary.image('real_images', self.example[:,:,:,:3], max_outputs=4)
+        tf.summary.image('compressed_images', self.reconstruction[:,:,:,:3], max_outputs=4)
+        if config.use_conditional_GAN:
+            tf.summary.image('semantic_map', self.semantic_map, max_outputs=4)
         self.merge_op = tf.summary.merge_all()
 
         self.train_writer = tf.summary.FileWriter(
