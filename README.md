@@ -19,12 +19,12 @@ $ python3 train.py -opt momentum --name my_network
 ```
 Training is conducted with batch size 1 and reconstructed samples / tensorboard summaries will be periodically written every certain number of steps (default is 128). Checkpoints are saved every 10 epochs. 
 
-To compress an image (coming soon).
+To compress a single image:
 ```bash
 # Compress
-$ python3 compress.py -h  # check arguments
-$ python3 compress.py -i /path/to/image -r /path/to/model/checkpoint
+$ python3 compress.py -r /path/to/model/checkpoint -i /path/to/image -o path/to/output/image
 ```
+The compressed image will be saved as a side-by-side comparison with the original image under the path specified in `directories.samples` in `config.py`. If you are using the provided pretrained model with noise sampling, retain the hyperparameters under `config_test` in `config.py`, otherwise the parameters during test time should match the parameters set during training.
 
 ## Results
 These globally compressed images are from the test split of the Cityscapes `leftImg8bit` dataset. The decoder seems to hallunicate greenery in buildings, and vice-versa. 
@@ -38,34 +38,23 @@ These globally compressed images are from the test split of the Cityscapes `left
 ![cityscapes_e44](images/results/cGAN_epoch47.png)
 **Epoch 48**
 ![cityscapes_e44](images/results/cGAN_epoch48.png)
-
-
-<!-- | Input | Output (0.072 bpp) |
-|-------|-------|
-|![cityscapes_real_0](images/results/ms_quant_0_real.png) | ![cityscapes_gen_0](images/results/ms_quant_0_gen.png) |
-|![cityscapes_real_1](images/results/ms_quant_1_real.png) | ![cityscapes_gen_1](images/results/ms_quant_1_gen.png) | -->
-
 ```
 Show quantized C=4,8,16 channels image comparison
 ```
-#### Hallucinations from sampled noise passed through a  DCGAN generator
-| Input | Output (0.072 bpp) |
-|-------|-------|
-|![cityscapes_noise_real_0](images/results/noise_0_real.png) | ![cityscapes_noise_hall_0](images/results/noise_0_hall.png) |
-|![cityscapes_noise_real_1](images/results/noise_1_real.png) | ![cityscapes_noise_hall_1](images/results/noise_1_hall.png) |
-
 | Generator Loss | Discriminator Loss |
 |-------|-------|
 |![gen_loss](images/results/generator_loss.png) | ![discriminator_loss](images/results/discriminator_loss.png) |
 
 ## Pretrained Model
-You can find pretrained models for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) under `<dropbox link here>`. The model was subject to the multiscale discriminator and feature matching losses, and conditioned on semantic label maps (see the `cGAN/` folder). The model was trained for 50 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset for the images and used the `gtFine` dataset for the corresponding semantic maps. 
+You can find pretrained models for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) under `<dropbox link here>` - upload tomorrow. The model was subject to the multiscale discriminator and feature matching losses. Noise is sampled from a 128-dim normal distribution, passed through a DCGAN-like generator and concatenated to the quantized image representation. The model was trained for 55 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset for the images and used the `gtFine` dataset for the corresponding semantic maps. 
 
-* Warning: Tensorflow 1.3 was used to train the models, but it appears to load without problems on Tensorflow 1.8. 
+A pretrained model for global conditional compression with a `C=8` bottleneck can be [found here](https://drive.google.com/open?id=1L3G4l8IQukNrsf3hjHv5xRhpNE77TD2k). Reconstruction is conditioned on semantic label maps (see the `cGAN/` folder and 'Conditional GAN usage'). 
+
+* Warning: Tensorflow 1.3 was used to train the models, but it appears to load without problems on Tensorflow 1.8. Please raise an issue if you have any problems.
 
 ## Details / extensions
 The network architectures are based on the description provided in the appendix of the original paper, which is in turn based on the paper [Perceptual Losses for Real-Time Style Transfer
-and Super-Resolution](https://cs.stanford.edu/people/jcjohns/eccv16/) The multiscale discriminator loss used was originally proposed in the project [High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/), consult `network.py` for the implementation. If you would like to add an extension you can write a new `@staticmethod` under the `Network` class, e.g.
+and Super-Resolution](https://cs.stanford.edu/people/jcjohns/eccv16/) The multiscale discriminator loss used was originally proposed in the project [High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/), consult `network.py` for the implementation. If you would like to add an extension you can create a new method under the `Network` class, e.g.
 
 ```python
 @staticmethod
@@ -97,7 +86,8 @@ The conditional GAN implementation for global compression is in the `cGAN` direc
 * Incorporate GAN noise sampling into the reconstructed image. The authors state that this step is optional and that the sampled noise is combined with the quantized representation but don't provide further details. Currently the model samples from a normal distribution and upsamples this using a DCGAN-like generator (see `network.py`) to be concatenated with the quantized image representation `w_hat`, but this appears to substantially increase the 'hallunication factor' in the reconstructed images.
 * Integrate VGG loss.
 * Experiment with WGAN-GP. 
-* Integrate spectral normalization for discriminator.
+* Experiment with spectral normalization/
+* Experiment with different generator architectures with noise sampling. 
 * Extend to selective compression using semantic maps (contributions welcome).
 
 ### Resources
@@ -105,3 +95,10 @@ The conditional GAN implementation for global compression is in the `cGAN` direc
 * [CycleGAN](https://arxiv.org/pdf/1703.10593.pdf)
 * [High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/)
 
+## More Results
+#### Global compression: Noise sampling, multiscale discriminator + feature-matching losses, C=8 channels - (compression to 0.072 bbp)
+![cityscapes_e45](images/results/noiseE45.png)
+![cityscapes_e47](images/results/cGANe47.png)
+![cityscapes_e51](images/results/noiseE51.png)
+![cityscapes_e53](images/results/noiseE53.png)
+![cityscapes_e55](images/results/noiseE55.png)

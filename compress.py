@@ -52,8 +52,11 @@ def single_compress(config, args):
         sess.run(gan.train_iterator.initializer, feed_dict=feed_dict_init)
         eval_dict = {gan.training_phase: False, gan.handle: handle}
 
-        output = os.path.splitext(os.path.basename(args.image_path))
-        save_path = os.path.join(directories.samples, '{}_compressed.pdf'.format(output[0]))
+        if args.output_path is None:
+            output = os.path.splitext(os.path.basename(args.image_path))
+            save_path = os.path.join(directories.samples, '{}_compressed.pdf'.format(output[0]))
+        else:
+            save_path = args.output_path
         Utils.single_plot(0, 0, sess, gan, handle, save_path, config, single_compress=True)
         print('Reconstruction saved to', save_path)
 
@@ -66,6 +69,7 @@ def main(**kwargs):
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-i", "--image_path", help="path to image to compress", type=str)
     parser.add_argument("-sm", "--semantic_map_path", help="path to corresponding semantic map", type=str)
+    parser.add_argument("-o", "--output_path", help="path to output image", type=str)
     parser.add_argument("-ds", "--dataset", default="cityscapes", help="choice of training dataset. Currently only supports cityscapes/ADE20k", choices=set(("cityscapes", "ADE20k")), type=str)
     args = parser.parse_args()
 
