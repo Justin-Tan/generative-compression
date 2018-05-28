@@ -46,11 +46,14 @@ Show quantized C=4,8,16 channels image comparison
 |![gen_loss](images/results/generator_loss.png) | ![discriminator_loss](images/results/discriminator_loss.png) |
 
 ## Pretrained Model
-You can find pretrained models for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) under `<dropbox link here>` - upload tomorrow. The model was subject to the multiscale discriminator and feature matching losses. Noise is sampled from a 128-dim normal distribution, passed through a DCGAN-like generator and concatenated to the quantized image representation. The model was trained for 55 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset for the images and used the `gtFine` dataset for the corresponding semantic maps. 
+You can find the pretrained model for global compression with a channel bottleneck of `C = 8` (corresponding to a 0.072 bpp representation) below. The model was subject to the multiscale discriminator and feature matching losses. Noise is sampled from a 128-dim normal distribution, passed through a DCGAN-like generator and concatenated to the quantized image representation. The model was trained for 55 epochs on the train split of the [Cityscapes](https://www.cityscapes-dataset.com/) `leftImg8bit` dataset for the images and used the `gtFine` dataset for the corresponding semantic maps. This should work with the default settings under `config_test` in `config.py`.
 
-A pretrained model for global conditional compression with a `C=8` bottleneck can be [found here](https://drive.google.com/open?id=1L3G4l8IQukNrsf3hjHv5xRhpNE77TD2k). Reconstruction is conditioned on semantic label maps (see the `cGAN/` folder and 'Conditional GAN usage'). 
+A pretrained model for global conditional compression with a `C=8` bottleneck is also included. This model was, trained for 50 epochs with the same losses as above. Reconstruction is conditioned on semantic label maps (see the `cGAN/` folder and 'Conditional GAN usage').
 
-* Warning: Tensorflow 1.3 was used to train the models, but it appears to load without problems on Tensorflow 1.8. Please raise an issue if you have any problems.
+* [Noise sampling model](https://drive.google.com/open?id=1gy6NJqlxflLDI1g9Rsileva-8G1ifsEC)
+* [Conditional GAN model](https://drive.google.com/open?id=1L3G4l8IQukNrsf3hjHv5xRhpNE77TD2k)
+
+** Warning: Tensorflow 1.3 was used to train the models, but it appears to load without problems on Tensorflow 1.8. Please raise an issue if you have any problems.
 
 ## Details / extensions
 The network architectures are based on the description provided in the appendix of the original paper, which is in turn based on the paper [Perceptual Losses for Real-Time Style Transfer
@@ -96,9 +99,11 @@ The conditional GAN implementation for global compression is in the `cGAN` direc
 * [High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/)
 
 ## More Results
-#### Global compression: Noise sampling, multiscale discriminator + feature-matching losses, C=8 channels - (compression to 0.072 bbp)
+#### Global compression: Noise sampling, multiscale discriminator + feature-matching losses, C=8 channels - Compression to 0.072 bbp
 ![cityscapes_e45](images/results/noiseE45.png)
 ![cityscapes_e47](images/results/cGANe47.png)
 ![cityscapes_e51](images/results/noiseE51.png)
 ![cityscapes_e53](images/results/noiseE53.png)
+![cityscapes_e54](images/results/noiseE54.png)
 ![cityscapes_e55](images/results/noiseE55.png)
+![cityscapes_e56](images/results/noiseE56.png)
