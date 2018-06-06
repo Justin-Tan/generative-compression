@@ -56,11 +56,11 @@ class Data(object):
 
             if training_dataset == 'ADE20k':
                 image = _aspect_preserving_width_resize(image)
+                if use_conditional_GAN:
+                    semantic_map = _aspect_preserving_width_resize(semantic_map)
                 # im.set_shape([None,512,3])
 
             if use_conditional_GAN:
-                if training_dataset == 'ADE20k':
-                    raise NotImplementedError('Conditional generation not implemented for ADE20k dataset.')
                 return image, semantic_map
             else:
                 return image
