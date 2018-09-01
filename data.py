@@ -73,8 +73,9 @@ class Data(object):
         else:
             dataset = tf.data.Dataset.from_tensor_slices(image_paths)
 
-        dataset = dataset.map(_parser)
         dataset = dataset.shuffle(buffer_size=8)
+        dataset = dataset.map(_parser)
+        dataset = dataset.cache()
         dataset = dataset.batch(batch_size)
 
         if test:
