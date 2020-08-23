@@ -26,6 +26,8 @@ $ python3 compress.py -r /path/to/model/checkpoint -i /path/to/image -o path/to/
 ```
 The compressed image will be saved as a side-by-side comparison with the original image under the path specified in `directories.samples` in `config.py`. If you are using the provided pretrained model with noise sampling, retain the hyperparameters under `config_test` in `config.py`, otherwise the parameters during test time should match the parameters set during training.
 
+*Note:* If you're willing to pay higher bitrates in exchange for much higher perceptual quality, you may want to check out this implementation of ["High-Fidelity Generative Image Compression"](https://github.com/Justin-Tan/high-fidelity-generative-compression), which is in the same vein but operates in higher bitrate regimes. Furthermore, it is capable of working with images of arbitrary size and resolution.
+
 ## Results
 These globally compressed images are from the test split of the Cityscapes `leftImg8bit` dataset. The decoder seems to hallunicate greenery in buildings, and vice-versa. 
 
