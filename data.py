@@ -74,7 +74,7 @@ class Data(object):
             dataset = tf.data.Dataset.from_tensor_slices(image_paths)
 
         dataset = dataset.shuffle(buffer_size=8)
-        dataset = dataset.map(_parser)
+        dataset = dataset.map(_parser,num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.cache()
         dataset = dataset.batch(batch_size)
 
@@ -116,7 +116,7 @@ class Data(object):
             return image, semantic_map
 
         dataset = tf.data.Dataset.from_tensor_slices(image_paths, semantic_map_paths)
-        dataset = dataset.map(_parser)
+        dataset = dataset.map(_parser,num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
 
@@ -141,7 +141,7 @@ class Data(object):
             return image, label
 
         dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-        dataset = dataset.map(_preprocess_inference)
+        dataset = dataset.map(_preprocess_inference,num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(batch_size)
         
         return dataset
